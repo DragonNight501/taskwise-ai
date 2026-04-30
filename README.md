@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Taskwise AI 🚀
 
-## Getting Started
+Taskwise AI is an AI-powered task planning app that turns any goal into a clear, organized task board.
 
-First, run the development server:
+## 🌐 Live Demo
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+https://mohamad-hadi-taskwise-ai.vercel.app/
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## ✨ Features
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Generate actionable tasks from any goal using Gemini AI
+- Organize tasks into To Do, In Progress, and Done columns
+- Drag and drop tasks between columns
+- Edit and delete tasks
+- Clear all tasks
+- LocalStorage persistence
+- Smooth animations and typing effect
+- Fallback system when AI limits are reached
+- Responsive dark UI
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🛠 Tech Stack
 
-## Learn More
+- Next.js
+- React
+- TypeScript
+- Tailwind CSS
+- Google Gemini API
+- Vercel
 
-To learn more about Next.js, take a look at the following resources:
+## 🚀 Getting Started
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+bash npm install npm run dev 
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Open:
 
-## Deploy on Vercel
+http://localhost:3000
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🔐 Environment Variables
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Create a .env.local file in the project root:
+
+GOOGLE_API_KEY=your_google_api_key_here
+
+## 📦 Build
+
+bash npm run build npm start 
+
+## 🧠 How It Works
+
+The user enters a goal, then Taskwise AI sends it to an API route.  
+The API uses Gemini to generate structured tasks.  
+If Gemini is unavailable or the limit is reached, the app uses a safe fallback.
+
+## 📌 Project Status
+
+This project is part of my frontend/fullstack portfolio and focuses on:
+
+- AI integration
+- Clean UI architecture
+- Task management logic
+- Drag and drop interaction
+- Production deployment
+
+## 👨‍💻 Author
+
+Built by Mohamad Had
