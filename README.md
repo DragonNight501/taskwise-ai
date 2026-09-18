@@ -1,66 +1,71 @@
-# Taskwise AI 🚀
+# Taskwise AI
 
-Taskwise AI is an AI-powered task planning app that turns any goal into a clear, organized task board.
+Taskwise AI turns any goal into an ordered, editable plan. Gemini drafts the tasks; you track them on a drag-and-drop board.
 
-## 🌐 Live Demo
+**Live demo:** https://mohamad-hadi-taskwise-ai.vercel.app
 
-https://mohamad-hadi-taskwise-ai.vercel.app/
+## Features
 
-## ✨ Features
+- Generate concrete, ordered tasks from a goal with Google Gemini (structured JSON output)
+- Works in any language — the plan comes back in the language of the goal
+- Control the length with phrases like "in 8 steps", "10 tasks", "6 Schritte" or "7 خطوات"
+- Board with To do, In progress and Done columns
+- Move tasks by drag and drop, or with arrow buttons (keyboard and touch friendly)
+- Inline editing, deletion and a two-step "clear board"
+- Progress bar for the whole plan
+- Tasks persist in `localStorage` and stay in sync across browser tabs
+- Clearly labelled starter template when the AI service is unavailable
+- Rate-limited API route to protect the AI quota
+- Light, responsive design with reduced-motion support
 
-- Generate actionable tasks from any goal using Gemini AI
-- Organize tasks into To Do, In Progress, and Done columns
-- Drag and drop tasks between columns
-- Edit and delete tasks
-- Clear all tasks
-- LocalStorage persistence
-- Smooth animations and typing effect
-- Fallback system when AI limits are reached
-- Responsive dark UI
+## Tech stack
 
-## 🛠 Tech Stack
-
-- Next.js
-- React
-- TypeScript
-- Tailwind CSS
-- Google Gemini API
+- Next.js 16 (App Router) · React 19 · TypeScript
+- Tailwind CSS v4
+- Google Gemini API (`@google/genai`)
+- lucide-react icons
 - Vercel
 
-## 🚀 Getting Started
+## Getting started
 
-bash npm install npm run dev 
+```bash
+npm install
+npm run dev
+```
 
-Open:
+Then open http://localhost:3000.
 
-http://localhost:3000
+### Environment variables
 
-## 🔐 Environment Variables
+Create `.env.local` in the project root:
 
-Create a .env.local file in the project root:
-
+```bash
 GOOGLE_API_KEY=your_google_api_key_here
+```
 
-## 📦 Build
+Without a key the app still runs and returns a starter template.
 
-bash npm run build npm start 
+## How it works
 
-## 🧠 How It Works
+1. The goal is sent to `POST /api/generate-tasks` (max 500 characters, 10 requests per 10 minutes per IP).
+2. The route detects a requested task count, then asks Gemini for exactly that many tasks using a response schema, so the model returns valid JSON instead of free text.
+3. If `gemini-2.5-flash` fails, `gemini-2.5-flash-lite` is tried; if both fail, a template plan is returned and labelled as such in the UI.
+4. The client stores tasks in `localStorage` through a `useSyncExternalStore` hook, which avoids load/save races and keeps multiple tabs in sync.
 
-The user enters a goal, then Taskwise AI sends it to an API route.  
-The API uses Gemini to generate structured tasks.  
-If Gemini is unavailable or the limit is reached, the app uses a safe fallback.
+## Project structure
 
-## 📌 Project Status
+```
+src/
+├── app/
+│   ├── api/generate-tasks/route.ts   Gemini call, validation, rate limit
+│   ├── layout.tsx · page.tsx
+│   ├── opengraph-image.tsx
+│   └── globals.css                   design tokens (@theme)
+├── components/                       composer, board, task card, header
+├── hooks/use-tasks.ts                localStorage-backed task store
+└── lib/                              task model, count detection, rate limit
+```
 
-This project is part of my frontend/fullstack portfolio and focuses on:
+## Author
 
-- AI integration
-- Clean UI architecture
-- Task management logic
-- Drag and drop interaction
-- Production deployment
-
-## 👨‍💻 Author
-
-Built by Mohamad Had
+Built by [Mohamad Hadi Dabbah Aljimal](https://portfolio-mohamad-dabbah.vercel.app).

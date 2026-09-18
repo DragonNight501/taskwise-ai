@@ -1,477 +1,76 @@
-"use client";
+import SiteHeader from "@/components/site-header";
+import TaskwiseApp from "@/components/taskwise-app";
+import { site } from "@/lib/site";
 
-/* ===================== */
-/* Imports */
-/* ===================== */
-
-import { useEffect, useState } from "react";
-import TypingText from "@/components/TypingText";
-
-/* ===================== */
-/* Types */
-/* Defines the structure of each task inside the system.
- */
-/* ===================== */
-
-type Task = {
-  id: number;
-  title: string;
-  description: string;
-  status: "TODO" | "IN_PROGRESS" | "DONE";
-  createdAt: string;
-};
-
-/* ===================== */
-/* Columns Config */
-/* Controls the board columns and their visual identity.
- */
-/* ===================== */
-
-const columns = [
-  {
-    title: "To Do",
-    status: "TODO",
-    titleClass: "column-todo",
-  },
-  {
-    title: "In Progress",
-    status: "IN_PROGRESS",
-    titleClass: "column-progress",
-  },
-  {
-    title: "Done",
-    status: "DONE",
-    titleClass: "column-done",
-  },
-] as const;
-
-/* ===================== */
-/* Home Page */
-/* AI prompt is placed inside the header to keep the board focused.
- */
-/* ===================== */
+const steps = [
+  { title: "Describe the goal", text: "In any language. Add “in 8 steps” to control the length." },
+  { title: "Gemini drafts the plan", text: "Ordered, concrete tasks returned as structured JSON." },
+  { title: "Execute on the board", text: "Drag between columns or use the arrows. Saved in your browser." },
+];
 
 export default function Home() {
-  /* ===================== */
-  /* State Management */
-  /* ===================== */
-
-  const [goal, setGoal] = useState("");
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [source, setSource] = useState("");
-  const [deletingId, setDeletingId] = useState<number | null>(null);
-  const [draggedTask, setDraggedTask] = useState<Task | null>(null);
-  const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
-
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editTitle, setEditTitle] = useState("");
-  const [editDesc, setEditDesc] = useState("");
-
-  /* ===================== */
-  /* Load Tasks from LocalStorage */
-  /* Runs once when the app loads.
-   */
-  /* ===================== */
-
-  useEffect(() => {
-    const saved = localStorage.getItem("taskwise-tasks");
-
-    if (saved) {
-      try {
-        setTasks(JSON.parse(saved));
-      } catch {
-        console.error("Failed to parse stored tasks");
-      }
-    }
-  }, []);
-
-  /* ===================== */
-  /* Save Tasks to LocalStorage */
-  /* Runs every time tasks change.
-   */
-  /* ===================== */
-
-  useEffect(() => {
-    localStorage.setItem("taskwise-tasks", JSON.stringify(tasks));
-  }, [tasks]);
-
-  /* ===================== */
-  /* Generate Tasks from AI */
-  /* Calls the API route and adds generated tasks to the board.
-   */
-  /* ===================== */
-
-  async function handleGeneratePlan(event: React.FormEvent) {
-    event.preventDefault();
-
-    if (!goal.trim() || loading) return;
-
-    setLoading(true);
-
-    try {
-      const response = await fetch("/api/generate-tasks", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ goal }),
-      });
-
-      const data = await response.json();
-
-      const newTasks: Task[] = (data.tasks || []).map(
-        (task: Task, index: number) => ({
-          id: Date.now() + index,
-          title: task.title,
-          description: task.description,
-          status: "TODO",
-          createdAt: new Date().toISOString(),
-        }),
-      );
-
-      setTasks((prev) => [...newTasks, ...prev]);
-      setSource(data.source || "");
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  /* ===================== */
-  /* Status Change */
-  /* Moves a task through TODO -> IN_PROGRESS -> DONE -> TODO.
-   */
-  /* ===================== */
-
-  function handleStatusChange(id: number) {
-    setTasks((prev) =>
-      prev.map((task) => {
-        if (task.id !== id) return task;
-
-        const nextStatus =
-          task.status === "TODO"
-            ? "IN_PROGRESS"
-            : task.status === "IN_PROGRESS"
-              ? "DONE"
-              : "TODO";
-
-        return { ...task, status: nextStatus };
-      }),
-    );
-  }
-
-  /* ===================== */
-  /* Delete Task */
-  /* Runs a small delete animation before removing the task.
-   */
-  /* ===================== */
-
-  function handleDelete(id: number) {
-    setDeletingId(id);
-
-    setTimeout(() => {
-      setTasks((prev) => prev.filter((task) => task.id !== id));
-      setDeletingId(null);
-    }, 200);
-  }
-
-  /* ===================== */
-  /* Clear All Tasks */
-  /* Removes every task from the board.
-   */
-  /* ===================== */
-
-  function handleClearAll() {
-    setTasks([]);
-  }
-
-  /* ===================== */
-  /* Edit Task */
-  /* Starts, saves, or cancels inline editing.
-   */
-  /* ===================== */
-
-  function startEdit(task: Task) {
-    setEditingId(task.id);
-    setEditTitle(task.title);
-    setEditDesc(task.description);
-  }
-
-  function saveEdit() {
-    if (!editTitle.trim()) return;
-
-    setTasks((prev) =>
-      prev.map((task) =>
-        task.id === editingId
-          ? { ...task, title: editTitle, description: editDesc }
-          : task,
-      ),
-    );
-
-    setEditingId(null);
-  }
-
-  function cancelEdit() {
-    setEditingId(null);
-  }
-
-  /* ===================== */
-  /* Drag & Drop Handlers */
-  /* Controls which task is dragged and where it gets dropped.
-   */
-  /* ===================== */
-
-  function handleDragStart(task: Task) {
-    setDraggedTask(task);
-  }
-
-  function handleDrop(status: Task["status"]) {
-    if (!draggedTask) return;
-
-    setTasks((prev) =>
-      prev.map((task) =>
-        task.id === draggedTask.id ? { ...task, status } : task,
-      ),
-    );
-
-    setDraggedTask(null);
-    setDragOverColumn(null);
-  }
-
-  /* ===================== */
-  /* UI Rendering */
-  /* ===================== */
-
   return (
-    <main className="app-container">
-      {/* ===================== */}
-      {/* Header + AI Prompt */}
-      {/* ===================== */}
+    <>
+      <SiteHeader />
 
-      <header className="hero-header animate-fade-up">
-        <div>
-          <p className="text-sm text-[var(--text-secondary)]">
-            AI PRODUCTIVITY SYSTEM
-          </p>
+      <main className="relative overflow-hidden">
+        <div className="bg-grid pointer-events-none absolute inset-x-0 top-0 h-[640px]" aria-hidden="true" />
+        <div
+          className="pointer-events-none absolute -top-56 left-1/4 h-[520px] w-[720px] animate-[drift_18s_ease-in-out_infinite] rounded-full bg-accent/15 blur-[130px]"
+          aria-hidden="true"
+        />
+        <div
+          className="pointer-events-none absolute -top-40 right-0 h-[420px] w-[560px] animate-[drift_22s_ease-in-out_infinite_reverse] rounded-full bg-cyan/15 blur-[130px]"
+          aria-hidden="true"
+        />
 
-          <h1 className="app-title mt-3">Taskwise AI</h1>
-        </div>
+        <div className="relative mx-auto w-full max-w-6xl px-4 pt-14 pb-24 sm:px-6 md:pt-20">
+          <TaskwiseApp
+            intro={
+              <div>
+                <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-accent">
+                  AI planning engine
+                </p>
 
-        <div className="glass-card header-prompt-card">
-          <form onSubmit={handleGeneratePlan} className="goal-form">
-            <div className="ai-prompt-field">
-              <label className="goal-label">Your Goal</label>
+                <h1 className="mt-5 text-4xl font-semibold leading-[1.04] tracking-[-0.04em] text-balance sm:text-5xl md:text-6xl">
+                  Turn any goal into{" "}
+                  <span className="text-gradient">a plan you can execute.</span>
+                </h1>
 
-              <textarea
-                value={goal}
-                onChange={(event) => setGoal(event.target.value)}
-                className="ai-prompt-textarea"
-                placeholder="Example: Create a 10-step plan..."
-              />
-            </div>
+                <p className="mt-6 max-w-lg text-base leading-7 text-muted md:text-lg md:leading-8">
+                  {site.description}
+                </p>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="generate-button flex items-center justify-center gap-2"
-            >
-              {loading && <div className="loader" />}
-              {loading ? "Generating..." : "Generate Plan"}
-            </button>
-          </form>
-        </div>
-      </header>
-
-      {/* ===================== */}
-      {/* Task Board Section */}
-      {/* ===================== */}
-
-      <section className="ai-board-section">
-        <div className="ai-board-header">
-          <div>
-            <h2 className="section-title">Generated Plan</h2>
-
-            <p className="section-subtitle">
-              Your AI-generated tasks are organized by status.
-            </p>
-
-            {source && <p className="source-badge">Source: {source}</p>}
-          </div>
-
-          {tasks.length > 0 ? (
-            <div className="board-actions">
-              <button
-                type="button"
-                onClick={handleClearAll}
-                className="clear-all-button"
-              >
-                Clear All
-              </button>
-            </div>
-          ) : null}
-        </div>
-
-        <div className="task-board">
-          {columns.map((column) => {
-            const columnTasks = tasks.filter(
-              (task) => task.status === column.status,
-            );
-
-            return (
-              <div
-                key={column.status}
-                className={`task-column-box ${
-                  dragOverColumn === column.status ? "column-active" : ""
-                }`}
-                onDragOver={(event) => {
-                  event.preventDefault();
-                  setDragOverColumn(column.status);
-                }}
-                onDragLeave={() => setDragOverColumn(null)}
-                onDrop={() => handleDrop(column.status)}
-              >
-                <div className="task-column-header">
-                  <h3 className={`task-column-title ${column.titleClass}`}>
-                    {column.title}
-                  </h3>
-
-                  <span className="task-column-count">
-                    {columnTasks.length}
-                  </span>
-                </div>
-
-                <div className="task-column">
-                  {columnTasks.length === 0 ? (
-                    <div className="empty-column-state">No tasks here yet.</div>
-                  ) : (
-                    columnTasks.map((task, index) => {
-                      const glowClass =
-                        task.status === "TODO"
-                          ? "glow-todo"
-                          : task.status === "IN_PROGRESS"
-                            ? "glow-progress"
-                            : "glow-done";
-
-                      return (
-                        <div
-                          key={task.id}
-                          draggable
-                          onDragStart={() => handleDragStart(task)}
-                          onClick={() => handleStatusChange(task.id)}
-                          className={`task-card task-enter ${
-                            deletingId === task.id ? "task-deleting" : ""
-                          } ${
-                            draggedTask?.id === task.id ? "task-dragging" : ""
-                          }`}
-                          style={{
-                            animationDelay: `${index * 0.18}s`,
-                          }}
-                        >
-                          {editingId === task.id ? (
-                            <div
-                              onClick={(event) => event.stopPropagation()}
-                              className="w-full"
-                            >
-                              <input
-                                value={editTitle}
-                                onChange={(event) =>
-                                  setEditTitle(event.target.value)
-                                }
-                                className="task-card-title w-full bg-transparent outline-none"
-                                maxLength={35}
-                              />
-
-                              <textarea
-                                value={editDesc}
-                                onChange={(event) =>
-                                  setEditDesc(event.target.value)
-                                }
-                                className="mt-4 w-full resize-none rounded-2xl border border-[var(--border)] bg-black/20 p-3 text-white outline-none"
-                                rows={3}
-                                maxLength={120}
-                              />
-
-                              <div className="task-card-actions mt-4">
-                                <button
-                                  type="button"
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    saveEdit();
-                                  }}
-                                  className="modal-blue-btn"
-                                >
-                                  Save
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    cancelEdit();
-                                  }}
-                                  className="modal-red-btn"
-                                >
-                                  Cancel
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <>
-                              <span className={`task-glow ${glowClass}`} />
-
-                              <h3 className="task-title">
-                                <TypingText
-                                  text={task.title}
-                                  speed={20}
-                                  delay={index * 180}
-                                />
-                              </h3>
-
-                              <p className="task-description">
-                                <TypingText
-                                  text={task.description}
-                                  speed={12}
-                                  delay={index * 180 + 400}
-                                />
-                              </p>
-
-                              <div className="task-card-actions mt-4">
-                                <button
-                                  type="button"
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    startEdit(task);
-                                  }}
-                                  className="task-action-edit"
-                                >
-                                  Edit
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    handleDelete(task.id);
-                                  }}
-                                  className="task-action-delete"
-                                >
-                                  Delete
-                                </button>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
+                <ol className="mt-10 max-w-lg divide-y divide-line border-y border-line">
+                  {steps.map((step, index) => (
+                    <li key={step.title} className="grid grid-cols-[2.5rem_1fr] gap-2 py-4">
+                      <span className="font-mono text-[11px] text-accent">
+                        0{index + 1}
+                      </span>
+                      <div>
+                        <p className="text-sm font-medium tracking-tight">{step.title}</p>
+                        <p className="mt-0.5 text-sm text-muted">{step.text}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
               </div>
-            );
-          })}
+            }
+          />
         </div>
-      </section>
-    </main>
+      </main>
+
+      <footer className="border-t border-line py-8">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-2 px-4 font-mono text-[11px] text-faint sm:px-6 md:flex-row md:justify-between">
+          <p>
+            Built by{" "}
+            <a href={site.portfolio} target="_blank" rel="noreferrer" className="text-muted underline-offset-4 hover:text-accent hover:underline">
+              {site.author}
+            </a>
+          </p>
+          <p>Next.js · TypeScript · Tailwind CSS · Gemini</p>
+        </div>
+      </footer>
+    </>
   );
 }
